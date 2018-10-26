@@ -1,17 +1,35 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.InetSocketAddress;
+import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 
 public class Publisher extends Machine {
-	final static int PUBLISHER_SOCKET = 50001;
-
+	final static int PUBLISHER_SOCKET = 50100;
+	final static String CONNECT_HEADER = "000MQTT|";
+	final static String CONNACK_HEADER = "001MQTT|";
+	final static String PUBLISH_HEADER = "010MQTT|";
+	final static String PUBACK_HEADER = "011MQTT|";
 	Publisher(int port){
 		try {
 			socket = new DatagramSocket(port);
-		} catch (SocketException e) {e.printStackTrace();}
+		} catch (SocketException e) 
+		{
+			if(port >= 51000)
+				e.printStackTrace();
+			else
+			{
+				port++;
+				try {
+					new Publisher(port).start();
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
+			}
+		}
 		listener.go();
 	}
 	
@@ -19,22 +37,23 @@ public class Publisher extends Machine {
 		try {
 			PacketContent recievedData = new PacketContent(recievedPacket);
 			String recievedString = recievedData.toString();
-
-			System.out.println(recievedString);
-			// You could test here if the String says "end" and terminate the
-			// program with a "this.notify()" that wakes up the start() method.
-			// TODO
-			DatagramPacket response;
-			response= (new PacketContent("Acknowledged")).toDatagramPacket();
-			sendPacket(response);
-			
+			if(recievedString.contains(CONNACK_HEADER))
+			{
+				System.out.println("Connection with broker established!");
+				this.notify();
+			}
+			else if(recievedString.contains(PUBACK_HEADER))
+			{
+				System.out.println("Publishing successfull");
+				this.notify();
+			}
 		}
 		catch(Exception e) {e.printStackTrace();}
 	}
 		
-	public void sendPacket(DatagramPacket packetToSend) { // look into what it does
+	public void sendPacket(DatagramPacket packetToSend, InetSocketAddress destination) { // look into what it does
 		try {
-			packetToSend.setSocketAddress(packetToSend.getSocketAddress()); // set address yourself
+			packetToSend.setSocketAddress(destination); // set address yourself
 			socket.send(packetToSend);
 		} catch (IOException e) {	e.printStackTrace(); }
 		
@@ -46,13 +65,42 @@ public class Publisher extends Machine {
 	}
 	
 	public synchronized void start() throws Exception {
-		System.out.println("Waiting for contact");
+		DatagramPacket connectPacket = new PacketContent(CONNECT_HEADER).toDatagramPacket();;
+		DatagramPacket publishPacket;
+		InetAddress localHost = InetAddress.getLocalHost();
+		InetSocketAddress destination = new InetSocketAddress(localHost,50000); // manually set broker address	
+		sendPacket(connectPacket,destination);
+		System.out.println("Connection request sent!");
+		this.wait();
+		Scanner input = new Scanner(System.in);	
+		String inputString = "";
+		do
+		{
+			System.out.println("If you wish to publish please type 'Publish', if you wish to quit then type 'q'");
+			inputString = input.nextLine();
+			if(inputString.equals("Publish"))
+			{
+				System.out.println("Please enter a topic you want to Publish.");// need to set up max
+				inputString = input.nextLine();
+				inputString = PUBLISH_HEADER + inputString;
+				System.out.println("Please enter a message to your topic.");// need to set up max
+				String message = input.nextLine();
+				inputString = inputString + "|" + message;
+				publishPacket = new PacketContent(inputString).toDatagramPacket();
+				sendPacket(publishPacket, destination);
+				this.wait();
+			}
+			else if(!inputString.equals("q"))
+				System.out.println("Invalid command, please try again.");
+		}while(!inputString.equals("q"));
+		input.close();
+		System.out.println("Publishing finished");
 		this.wait();
 	}
 	
 	public static void main(String[] args) {
 		try {					
-			new Broker(PUBLISHER_SOCKET).start();
+			new Publisher(PUBLISHER_SOCKET).start();
 			System.out.println("Program completed");
 		} catch(java.lang.Exception e) {e.printStackTrace();}
 	}

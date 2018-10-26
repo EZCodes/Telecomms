@@ -6,7 +6,7 @@ import java.util.concurrent.CountDownLatch;
 
 
 public abstract class Machine { // this class is the base for Broker, Subscribers and Publishers.
-	final static int PACKET_SIZE = 65536; // ask about the size
+	final static int PACKET_SIZE = 65536; // standard packet size
 	DatagramSocket socket;
 	Listener listener;
 	CountDownLatch latch;  // used for pausing
@@ -21,7 +21,7 @@ public abstract class Machine { // this class is the base for Broker, Subscriber
 	public abstract void onReceipt(DatagramPacket recievedPacket); // do something on receipt
 	
 	
-	public abstract void sendPacket(DatagramPacket packetToSend); // send packets
+	public abstract void sendPacket(DatagramPacket packetToSend, InetSocketAddress destination); // send packets
 
 	
 	
