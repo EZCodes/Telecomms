@@ -7,6 +7,9 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
+
+import javax.swing.JDialog;
+import javax.swing.JOptionPane;
 /**
  * 
  * @author Jerzy Jaskuc
@@ -69,9 +72,19 @@ public class Subscriber extends Machine {
 			else if(recievedString.contains(PUBLISH_HEADER))
 			{
 				String[] publisherMessage = recievedString.split("[|]");
+				//JOptionPane.showMessageDialog(null, "Message from publisher with topic: " + publisherMessage[1],publisherMessage[2],JOptionPane.INFORMATION_MESSAGE);
+				
+				/*JOptionPane message = new JOptionPane(publisherMessage[2]); 
+				JDialog dialog = message.createDialog(null,"Message from publisher with topic: " + publisherMessage[1]);
+				dialog.setModal(false);
+				dialog.setAlwaysOnTop(true);
+				dialog.setVisible(true); */
+				Thread outThread = new PublishedOutput(publisherMessage);
+				outThread.start();
+				/*
 				System.out.println("Message from publisher with topic: " + publisherMessage[1]);
-				System.out.println(publisherMessage[2]);
-				this.notify(); // temporary
+				System.out.println(publisherMessage[2]); */
+				//this.notify(); // temporary 
 			}
 			else
 			{
@@ -98,8 +111,8 @@ public class Subscriber extends Machine {
 		InetSocketAddress destination = new InetSocketAddress(localHost,50000);// manually set
 		sendPacket(connectPacket, destination);
 		System.out.println("Connection request sent!");
-		this.wait();
-		Scanner input = new Scanner(System.in);	
+		this.wait();		
+		Scanner input = new Scanner(System.in);
 		String inputString = "";
 		do
 		{

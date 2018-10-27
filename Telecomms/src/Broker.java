@@ -73,7 +73,6 @@ public class Broker extends Machine {
 			{
 				InetSocketAddress destination = (InetSocketAddress) recievedPacket.getSocketAddress();
 				String[] recievedPublication = recievedString.split("[|]");
-				System.out.println(recievedPublication[1] + " " + recievedPublication[2]);
 				if(subscribersByTopics.containsKey(recievedPublication[1]))
 				{
 					ArrayList<InetSocketAddress> recipientAddresses = subscribersByTopics.get(recievedPublication[1]);
