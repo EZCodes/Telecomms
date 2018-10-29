@@ -6,6 +6,8 @@ import java.net.SocketException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Scanner;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 
 import javax.swing.JDialog;
@@ -28,7 +30,6 @@ public class Subscriber extends Machine {
 	final static String SUBSCRIBE_HEADER = "100MQTT|";
 	final static String SUBACK_HEADER = "101MQTT|";
 	final static String PUBLISH_HEADER = "010MQTT|";
-	//private boolean awaitingAck = false;
 	
 	public int generateSubscriberSocket(int offset)
 	{
@@ -105,13 +106,20 @@ public class Subscriber extends Machine {
 	
 	
 	public synchronized void start() throws Exception {
+		Timer timer = new Timer(true);
 		DatagramPacket subscription;
 		DatagramPacket connectPacket = new PacketContent(CONNECT_HEADER).toDatagramPacket();
 		InetAddress localHost = InetAddress.getLocalHost();
 		InetSocketAddress destination = new InetSocketAddress(localHost,50000);// manually set
 		sendPacket(connectPacket, destination);
 		System.out.println("Connection request sent!");
-		this.wait();		
+		
+		TimeoutTimer task = new TimeoutTimer(this,connectPacket, destination);
+		timer.schedule(task, 7000,7000); // 7 sec timeout timer
+		this.wait();
+		task.cancel();
+			
+
 		Scanner input = new Scanner(System.in);
 		String inputString = "";
 		do
@@ -125,7 +133,11 @@ public class Subscriber extends Machine {
 				inputString = SUBSCRIBE_HEADER + inputString + "|"; // adding '|' at the end for proper parsing at broker
 				subscription = new PacketContent(inputString).toDatagramPacket();
 				sendPacket(subscription, destination);
+				
+				task = new TimeoutTimer(this, subscription, destination);
+				timer.schedule(task, 7000,7000); // 7 sec timeout timer
 				this.wait();
+				task.cancel();
 			}
 			else if(inputString.equals("listen"))
 			{
@@ -135,6 +147,7 @@ public class Subscriber extends Machine {
 				System.out.println("Invalid command, please try again.");
 		}while(!inputString.equals("q"));
 		input.close();
+		timer.cancel();
 	}
 	
 	public static void main(String[] args) {

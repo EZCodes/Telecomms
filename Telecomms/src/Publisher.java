@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.InetSocketAddress;
 import java.util.Scanner;
+import java.util.Timer;
 import java.util.concurrent.CountDownLatch;
 
 public class Publisher extends Machine {
@@ -65,13 +66,17 @@ public class Publisher extends Machine {
 	}
 	
 	public synchronized void start() throws Exception {
+		Timer timer = new Timer(true);
 		DatagramPacket connectPacket = new PacketContent(CONNECT_HEADER).toDatagramPacket();;
 		DatagramPacket publishPacket;
 		InetAddress localHost = InetAddress.getLocalHost();
 		InetSocketAddress destination = new InetSocketAddress(localHost,50000); // manually set broker address	
 		sendPacket(connectPacket,destination);
 		System.out.println("Connection request sent!");
+		TimeoutTimer task = new TimeoutTimer(this,connectPacket, destination);
+		timer.schedule(task, 7000,7000); // 7 sec timeout timer
 		this.wait();
+		task.cancel();
 		Scanner input = new Scanner(System.in);	
 		String inputString = "";
 		do
@@ -88,14 +93,17 @@ public class Publisher extends Machine {
 				inputString = inputString + "|" + message;
 				publishPacket = new PacketContent(inputString).toDatagramPacket();
 				sendPacket(publishPacket, destination);
+				task = new TimeoutTimer(this, publishPacket, destination);
+				timer.schedule(task, 7000,7000); // 7 sec timeout timer
 				this.wait();
+				task.cancel();
 			}
 			else if(!inputString.equals("q"))
 				System.out.println("Invalid command, please try again.");
 		}while(!inputString.equals("q"));
 		input.close();
-		System.out.println("Publishing finished");
-		this.wait();
+		timer.cancel();
+		System.out.println("Program finished");
 	}
 	
 	public static void main(String[] args) {
