@@ -27,10 +27,9 @@ public class Subscriber extends Machine {
 	final static int SUBSCRIBER_SOCKET = 51000;
 	final static String CONNECT_HEADER = "000MQTT|";
 	final static String CONNACK_HEADER = "001MQTT|";
-	final static String SUBSCRIBE_HEADER = "100MQTT|";
 	final static String SUBACK_HEADER = "101MQTT|";
 	final static String PUBLISH_HEADER = "010MQTT|";
-	
+	private SubscriberConsoleThread s;
 	public int generateSubscriberSocket(int offset)
 	{
 		return SUBSCRIBER_SOCKET+offset;
@@ -68,24 +67,16 @@ public class Subscriber extends Machine {
 			else if(recievedString.contains(SUBACK_HEADER))
 			{
 				System.out.println("Subscribed successfully!");
-				this.notify();
+				synchronized(this.s) { // lock on thread to notify it .
+					this.s.notify();
+				}
 			}
 			else if(recievedString.contains(PUBLISH_HEADER))
 			{
 				String[] publisherMessage = recievedString.split("[|]");
-				//JOptionPane.showMessageDialog(null, "Message from publisher with topic: " + publisherMessage[1],publisherMessage[2],JOptionPane.INFORMATION_MESSAGE);
-				
-				/*JOptionPane message = new JOptionPane(publisherMessage[2]); 
-				JDialog dialog = message.createDialog(null,"Message from publisher with topic: " + publisherMessage[1]);
-				dialog.setModal(false);
-				dialog.setAlwaysOnTop(true);
-				dialog.setVisible(true); */
 				Thread outThread = new PublishedOutput(publisherMessage);
 				outThread.start();
-				/*
-				System.out.println("Message from publisher with topic: " + publisherMessage[1]);
-				System.out.println(publisherMessage[2]); */
-				//this.notify(); // temporary 
+
 			}
 			else
 			{
@@ -107,9 +98,10 @@ public class Subscriber extends Machine {
 	
 	public synchronized void start() throws Exception {
 		Timer timer = new Timer(true);
-		DatagramPacket subscription;
+		
 		DatagramPacket connectPacket = new PacketContent(CONNECT_HEADER).toDatagramPacket();
-		InetAddress localHost = InetAddress.getLocalHost();
+		InetAddress localHost;
+		localHost = InetAddress.getLocalHost();
 		InetSocketAddress destination = new InetSocketAddress(localHost,50000);// manually set
 		sendPacket(connectPacket, destination);
 		System.out.println("Connection request sent!");
@@ -118,36 +110,10 @@ public class Subscriber extends Machine {
 		timer.schedule(task, 7000,7000); // 7 sec timeout timer
 		this.wait();
 		task.cancel();
-			
-
-		Scanner input = new Scanner(System.in);
-		String inputString = "";
-		do
-		{
-			System.out.println("If you wish to subscribe please type 'Subscribe', if you wish to quit then type 'q'");
-			inputString = input.nextLine();
-			if(inputString.equals("Subscribe"))
-			{
-				System.out.println("Please enter a topic you want to subscribe to.");// need to set up max
-				inputString = input.nextLine();
-				inputString = SUBSCRIBE_HEADER + inputString + "|"; // adding '|' at the end for proper parsing at broker
-				subscription = new PacketContent(inputString).toDatagramPacket();
-				sendPacket(subscription, destination);
-				
-				task = new TimeoutTimer(this, subscription, destination);
-				timer.schedule(task, 7000,7000); // 7 sec timeout timer
-				this.wait();
-				task.cancel();
-			}
-			else if(inputString.equals("listen"))
-			{
-				this.wait();
-			}
-			else if(!inputString.equals("q"))
-				System.out.println("Invalid command, please try again.");
-		}while(!inputString.equals("q"));
-		input.close();
-		timer.cancel();
+		this.s = new SubscriberConsoleThread(this);
+		this.s.start();
+		this.wait();
+		
 	}
 	
 	public static void main(String[] args) {
