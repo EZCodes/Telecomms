@@ -5,13 +5,13 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
 
 
-public abstract class Machine { // this class is the base for Broker, Subscribers and Publishers.
+public abstract class Machine { 
 	final static int PACKET_SIZE = 65536; // standard packet size
 	DatagramSocket socket;
 	Listener listener;
-	CountDownLatch latch;  // used for pausing
+	CountDownLatch latch; 
 	
-	Machine(){ // constructor
+	Machine(){ 
 		latch= new CountDownLatch(1);
 		listener= new Listener();
 		listener.setDaemon(true); // method invoked to start a thread
@@ -27,7 +27,7 @@ public abstract class Machine { // this class is the base for Broker, Subscriber
 	
 	class Listener extends Thread{
 		
-		public void go() { // indicate that server has been set up adn socket initialised
+		public void go() { // indicate that server has been set up and socket initialised
 			latch.countDown();
 			
 		}
@@ -44,7 +44,7 @@ public abstract class Machine { // this class is the base for Broker, Subscriber
 				}
 				
 			}catch(Exception e) {
-				if (!(e instanceof SocketException)) e.printStackTrace(); // if problem with socket, print it
+				if (!(e instanceof SocketException)) e.printStackTrace(); 
 			}
 			
 		}

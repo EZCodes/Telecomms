@@ -52,18 +52,14 @@ public class Publisher extends Machine {
 		catch(Exception e) {e.printStackTrace();}
 	}
 		
-	public void sendPacket(DatagramPacket packetToSend, InetSocketAddress destination) { // look into what it does
+	public void sendPacket(DatagramPacket packetToSend, InetSocketAddress destination) { 
 		try {
-			packetToSend.setSocketAddress(destination); // set address yourself
+			packetToSend.setSocketAddress(destination); // set address
 			socket.send(packetToSend);
 		} catch (IOException e) {	e.printStackTrace(); }
 		
 	}
 	
-	public int decideDestinationSocket() // TODO
-	{
-		return 0;
-	}
 	
 	public synchronized void start() throws Exception {
 		Timer timer = new Timer(true);
@@ -85,10 +81,10 @@ public class Publisher extends Machine {
 			inputString = input.nextLine();
 			if(inputString.equals("Publish"))
 			{
-				System.out.println("Please enter a topic you want to Publish.");// need to set up max
+				System.out.println("Please enter a topic you want to Publish.");
 				inputString = input.nextLine();
 				inputString = PUBLISH_HEADER + inputString;
-				System.out.println("Please enter a message to your topic.");// need to set up max
+				System.out.println("Please enter a message to your topic.");
 				String message = input.nextLine();
 				inputString = inputString + "|" + message;
 				publishPacket = new PacketContent(inputString).toDatagramPacket();

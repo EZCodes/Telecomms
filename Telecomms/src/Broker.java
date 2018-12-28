@@ -99,17 +99,12 @@ public class Broker extends Machine {
 		catch(Exception e) {e.printStackTrace();}
 	}
 		
-	public void sendPacket(DatagramPacket packetToSend,InetSocketAddress destination) { // look into what it does
+	public void sendPacket(DatagramPacket packetToSend,InetSocketAddress destination) { 
 		try {
 			packetToSend.setSocketAddress(destination); // set address yourself
 			socket.send(packetToSend);
 		} catch (IOException e) {	e.printStackTrace(); }
 		
-	}
-	
-	public int decideDestinationSocket() // TODO
-	{
-		return 0;
 	}
 	
 	public synchronized void start() throws Exception {
